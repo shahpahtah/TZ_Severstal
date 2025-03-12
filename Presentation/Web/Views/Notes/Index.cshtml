@@ -1,0 +1,138 @@
+﻿@model NoteListModel
+@{
+    ViewBag.Title = "Создать несколько заметок";
+}
+
+<h2>@ViewBag.Title</h2>
+
+@if (ViewBag.SuccessMessage != null)
+{
+    <div class="alert alert-success">
+        @ViewBag.SuccessMessage
+    </div>
+}
+
+<form id="noteForm" method="post" class="form-horizontal">
+    <input type="hidden" asp-antiforgery="true" />
+
+    <div class="form-horizontal">
+        <hr />
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <div id="notes-container">
+            @for (var i = 0; i < Model.Notes.Count; i++)
+            {
+                <h4>Заметка #@(i + 1)</h4>
+                <div class="note-container">
+                    <div class="form-group">
+                        <label asp-for="Notes[i].Title" class="control-label col-md-2"></label>
+                        <div class="col-md-10">
+                            <input asp-for="Notes[i].Title" class="form-control" required />
+                            <span asp-validation-for="Notes[i].Title" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label asp-for="Notes[i].Content" class="control-label col-md-2"></label>
+                        <div class="col-md-10">
+                            <textarea asp-for="Notes[i].Content" class="form-control" rows="3" required></textarea>
+                            <span asp-validation-for="Notes[i].Content" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+                <hr />
+            }
+        </div>
+
+        <div class="form-group">
+            <div class="col-md-offset-2 col-md-10">
+                <button type="button" id="add-note-button" class="btn btn-secondary">Добавить еще заметку</button>
+                <button type="submit" class="btn btn-primary">Создать заметки</button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<hr />
+
+<div id="display-notes-container">
+    <h3>Все заметки</h3>
+    <ul id="notes-list" style="list-style: none; padding: 0;">
+        @foreach (var note in ViewBag.ExistingNotes)
+        {
+            <li style="border: 1px solid #ccc; margin-bottom: 10px; padding: 10px; border-radius: 5px; background-color: #f9f9f9; position: relative;">
+                <div style="margin-bottom: 5px; word-break: break-word;">
+                    <strong>@note.Title:</strong> @note.Content
+                </div>
+                <div style="position: absolute; bottom: 10px; right: 10px;">
+                    <button class="btn btn-sm btn-primary edit-note-button" data-note-id="@note.Id">Изменить</button>
+                    <form asp-controller="Notes" asp-action="Delete" asp-route-id="@note.Id" method="post" style="display: inline-block; margin-left: 5px;">
+                        <input type="hidden" asp-antiforgery="true" />
+                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Вы уверены, что хотите удалить эту заметку?');">Удалить</button>
+                    </form>
+                </div>
+
+                <div class="edit-form" data-note-id="@note.Id" style="display: none; margin-top: 10px; border: 1px solid #ddd; padding: 10px; border-radius: 5px; background-color: #fff;">
+                    <form asp-action="Edit" method="post" class="edit-note-form">
+                        <input type="hidden" asp-antiforgery="true" />
+                        <input type="hidden" name="Id" value="@note.Id" />
+                        <div class="form-group" style="margin-bottom: 10px;">
+                            <label for="Title" style="display: block; margin-bottom: 5px;">Заголовок:</label>
+                            <input type="text" name="Title" value="@note.Title" class="form-control" required style="width: 100%;" />
+                        </div>
+                        <div class="form-group" style="margin-bottom: 10px;">
+                            <label for="Content" style="display: block; margin-bottom: 5px;">Содержание:</label>
+                            <textarea name="Content" class="form-control" rows="3" required style="width: 100%;"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-sm btn-success">Сохранить</button>
+                        <button type="button" class="btn btn-sm btn-secondary cancel-edit-button">Отмена</button>
+                    </form>
+                </div>
+            </li>
+        }
+    </ul>
+</div>
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Add new note button
+            $("#add-note-button").click(function () {
+                var notesContainer = $("#notes-container");
+                var noteCount = notesContainer.children(".note-container").length;
+                var index = noteCount;
+
+                var newNote = $(`
+                    <h4>Заметка #` + (index + 1) + `</h4>
+                    <div class="note-container">
+                        <div class="form-group">
+                            <label class="control-label col-md-2" for="Notes_`+ index +`__Title">Заголовок</label>
+                            <div class="col-md-10">
+                                <input class="form-control" type="text" name="Notes[`+ index +`].Title" id="Notes_`+ index +`__Title" required />
+                                <span class="text-danger field-validation-valid" data-valmsg-for="Notes[`+ index +`].Title" data-valmsg-replace="true"></span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-2" for="Notes_`+ index +`__Content">Содержание</label>
+                            <div class="col-md-10">
+                                <textarea class="form-control" rows="3" name="Notes[`+ index +`].Content" id="Notes_`+ index +`__Content" required></textarea>
+                                <span class="text-danger field-validation-valid" data-valmsg-for="Notes[`+ index +`].Content" data-valmsg-replace="true"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <hr/>`
+                );
+
+                notesContainer.append(newNote);
+            });
+              $("#notes-list").on("click", ".edit-note-button", function () {
+                var noteId = $(this).data("note-id");
+                $(this).closest("li").find(".edit-form[data-note-id='" + noteId + "']").show();  // Показываем форму редактирования
+                $(this).hide(); // Скрываем кнопку "Изменить"
+            });
+            $("#notes-list").on("click", ".cancel-edit-button", function () {
+                $(this).closest(".edit-form").hide(); // Скрываем форму редактирования
+                $(this).closest("li").find(".edit-note-button").show(); // Показываем кнопку "Изменить"
+            });
+        });
+    </script>
+}

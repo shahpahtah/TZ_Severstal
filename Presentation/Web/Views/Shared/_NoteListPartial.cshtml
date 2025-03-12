@@ -1,0 +1,11 @@
+﻿@model IEnumerable<NoteDto>
+
+<ul id="notes-list">
+    @foreach (var note in Model)
+    {
+        <li>
+            <strong>@note.Title:</strong> @note.Content
+        </li>
+    }
+</ul>
+
